@@ -2,7 +2,7 @@
 
 <!-- 顶部打字动画 -->
 <a href="https://github.com/RollandXD">
-  <img src="https://readme-typing-svg.demolab.com?font=Noto+Sans+SC&weight=600&size=26&duration=3500&pause=800&color=CBA6F7&center=true&vCenter=true&width=520&height=70&lines=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%98%AF%E9%87%8D%E9%98%B3+%F0%9F%91%8B;%E4%B8%80%E5%90%8D%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%E5%AD%A6%E7%94%9F;%E7%83%AD%E7%88%B1%E5%91%BD%E4%BB%A4%E8%A1%8C+%C2%B7+%E5%BC%80%E6%BA%90+%C2%B7+Neovim;Arch+Linux+%E9%87%8D%E5%BA%A6%E7%94%A8%E6%88%B7" alt="打字动画标题" />
+  <img src="https://readme-typing-svg.demolab.com?font=Noto+Sans+SC&weight=600&size=26&duration=3500&pause=800&color=CBA6F7&center=true&vCenter=true&width=520&height=70&lines=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%98%AF%20Rolland%20%F0%9F%91%8B;%E4%B8%80%E5%90%8D%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%E5%AD%A6%E7%94%9F;%E7%83%AD%E7%88%B1%E7%BC%96%E7%A8%8B%20%C2%B7%20%E5%91%BD%E4%BB%A4%E8%A1%8C%20%C2%B7%20%E5%BC%80%E6%BA%90" alt="打字动画标题" />
 </a>
 
 </div>
@@ -11,11 +11,10 @@
 
 ### 👋 关于我
 
-- 🎓 一名**软件工程**在读学生，喜欢把学到的东西系统化整理成笔记
-- 🐧 **Arch Linux** + **niri** 滚动平铺桌面的重度折腾党
-- ⌨️ 主力编辑器是 **Neovim**，终端是 **kitty**，配色钟爱 **Catppuccin Mocha**
-- 🌱 正在深入 **Java / Python** 与命令行工具链，折腾自己的 dotfiles
-- 📫 想找我：在下方仓库提 Issue，或者直接发邮件
+- 🎓 软件工程在读学生，喜欢把学到的东西整理成笔记
+- 💻 主要写 **Java** 和 **Python**，日常在 **Linux + Neovim** 下开发
+- 🛠️ 喜欢折腾命令行工具，维护着自己的 dotfiles
+- 💬 欢迎在仓库里交流，一起学习
 
 ---
 
@@ -23,7 +22,7 @@
 
 ### 🛠️ 技术栈
 
-<img src="https://skillicons.dev/icons?i=java,python,lua,bash,linux,neovim,vim,git,github&perline=9" alt="技能图标墙" />
+<img src="https://skillicons.dev/icons?i=java,python,lua,bash,linux,neovim,git&perline=7" alt="技能图标墙" />
 
 </div>
 
