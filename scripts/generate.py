@@ -19,6 +19,7 @@ import os
 import re
 import unicodedata
 import urllib.request
+import xml.etree.ElementTree as ET
 from collections import Counter
 from pathlib import Path
 
@@ -142,8 +143,7 @@ class Svg:
     def add(self, s: str) -> None:
         self.parts.append(s)
 
-    def text(self, x: float, y: float, runs, *, size: float = 13, anchor: str = "start", cls: str = "",
-             delay: float | None = None) -> None:
+    def text(self, x: float, y: float, runs, *, size: float = 13, anchor: str = "start") -> None:
         """runs: 字符串，或 [(文字, 颜色, 字重[, 字号])] 列表；一个 <text> 里多段 tspan。"""
         if isinstance(runs, str):
             runs = [(runs, "text", 400)]
@@ -155,9 +155,7 @@ class Svg:
             self.glyphs[weight].update(t)
             spans.append(f'<tspan fill="{self.c(fill)}"{fw}{fs}>{html.escape(t)}</tspan>')
         a = f' text-anchor="{anchor}"' if anchor != "start" else ""
-        k = f' class="{cls}"' if cls else ""
-        d = f' style="animation-delay:{delay:.2f}s"' if delay is not None else ""
-        self.add(f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}"{a}{k}{d}>{"".join(spans)}</text>')
+        self.add(f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}"{a}>{"".join(spans)}</text>')
 
     def chrome(self, active: int, right: str) -> None:
         p, h = self.p, self.h
@@ -181,13 +179,9 @@ class Svg:
         css = (
             f"{faces}"
             "text{font-family:RX,'Maple Mono NF CN','JetBrains Mono',ui-monospace,monospace;white-space:pre}"
-            ".rx-in{animation:rx-in .5s ease-out both}"
-            "@keyframes rx-in{from{opacity:0}}"
-            ".rx-grow{transform-box:fill-box;transform-origin:50% 100%;animation:rx-grow .7s cubic-bezier(.2,.8,.2,1) both}"
-            "@keyframes rx-grow{from{transform:scaleY(0)}}"
             ".rx-cur{animation:rx-blink 1.1s step-end infinite}"
             "@keyframes rx-blink{50%{opacity:0}}"
-            "@media (prefers-reduced-motion:reduce){.rx-in,.rx-grow,.rx-cur{animation:none}}"
+            "@media (prefers-reduced-motion:reduce){.rx-cur{animation:none}}"
         )
         return (
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{self.h}" viewBox="0 0 {W} {self.h}" '
@@ -304,7 +298,7 @@ def hero(p: dict, data: dict) -> str:
                   f'x2="{PAD + 270}" y2="{ly + len(ARCH) * lh}"><stop offset="0" stop-color="{p["blue"]}"/>'
                   f'<stop offset="1" stop-color="{p["mauve"]}"/></linearGradient>')
     for i, line in enumerate(ARCH):
-        s.text(PAD + 6, ly + i * lh, [(line, "url(#rx-arch)", 700)], size=fs, cls="rx-in", delay=i * 0.03)
+        s.text(PAD + 6, ly + i * lh, [(line, "url(#rx-arch)", 700)], size=fs)
 
     x = 318
     head = f"{CONFIG['user']}@{CONFIG['host']}"
@@ -314,12 +308,11 @@ def hero(p: dict, data: dict) -> str:
     y = top + 36
     for i, (icon, key, val) in enumerate(info):
         s.text(x, y + i * step, [(f"{icon}  ", "blue", 400), (f"{key:<8}", "blue", 700), (val, "text", 400)],
-               size=13.5, cls="rx-in", delay=0.25 + i * 0.07)
+               size=13.5)
 
     y += len(info) * step - 4
     for i, key in enumerate(["red", "peach", "yellow", "green", "teal", "blue", "mauve", "pink"]):
-        s.add(f'<rect x="{x + i * 30}" y="{y}" width="24" height="12" rx="3" fill="{p[key]}" class="rx-in" '
-              f'style="animation-delay:{1.0 + i * 0.05:.2f}s"/>')
+        s.add(f'<rect x="{x + i * 30}" y="{y}" width="24" height="12" rx="3" fill="{p[key]}"/>')
     y += 44
     s.text(x, y, [("❯ ", "green", 700), ("echo \"欢迎来玩\"", "subtext0", 400)], size=13.5)
     cx = x + tw("❯ echo \"欢迎来玩\" ", 13.5)
@@ -347,7 +340,7 @@ def stats(p: dict, data: dict) -> str:
             s.add(f'<line x1="{PAD + i * cw:.1f}" y1="{BAR + 28}" x2="{PAD + i * cw:.1f}" y2="{BAR + 104}" stroke="{p["surface0"]}"/>')
         s.add(f'<rect x="{x:.1f}" y="{BAR + 29}" width="3" height="12" rx="1.5" fill="{p[color]}"/>')
         s.text(x + 10, BAR + 39.5, [(label, "subtext0", 400)], size=12)
-        s.text(x, BAR + 78, [(value, "text", 700, 30), (unit, "subtext0", 400, 13)], size=30, cls="rx-in", delay=0.1 * i)
+        s.text(x, BAR + 78, [(value, "text", 700, 30), (unit, "subtext0", 400, 13)], size=30)
         s.text(x, BAR + 100, [(note, "overlay1", 400)], size=11.5)
 
     s.add(f'<line x1="{PAD}" y1="{BAR + 128}" x2="{W - PAD}" y2="{BAR + 128}" stroke="{p["surface0"]}"/>')
@@ -369,7 +362,7 @@ def stats(p: dict, data: dict) -> str:
         if v:
             bh = max(3, v / peak * ch)
             s.add(f'<rect x="{bx:.1f}" y="{base - bh:.1f}" width="{slot * 0.64:.1f}" height="{bh:.1f}" rx="2" '
-                  f'fill="url(#rx-bar)" class="rx-grow" style="animation-delay:{0.2 + i * 0.012:.2f}s"/>')
+                  f'fill="url(#rx-bar)"/>')
         else:
             s.add(f'<rect x="{bx:.1f}" y="{base - 2}" width="{slot * 0.64:.1f}" height="2" rx="1" fill="{p["surface1"]}"/>')
     s.add(f'<line x1="{cx0}" y1="{base + 0.5}" x2="{cx0 + cw_}" y2="{base + 0.5}" stroke="{p["surface0"]}"/>')
@@ -400,7 +393,7 @@ def stats(p: dict, data: dict) -> str:
     for i, (name, v) in enumerate(rows):
         y = top + 52 + i * 21
         s.add(f'<circle cx="{lx + 5}" cy="{y - 4.5}" r="4" fill="{p[colors.get(name, "overlay0")]}"/>')
-        s.text(lx + 16, y, [(name, "text", 400)], size=12.5, cls="rx-in", delay=0.4 + i * 0.08)
+        s.text(lx + 16, y, [(name, "text", 400)], size=12.5)
         s.text(W - PAD, y, [(f"{v / total * 100:.1f}%", "subtext0", 400)], size=12.5, anchor="end")
     return s.render()
 
@@ -417,7 +410,7 @@ def projects(p: dict, data: dict) -> str:
     for i, r in enumerate(repos):
         x, y = PAD + (i % cols) * (cw + gap), BAR + 26 + (i // cols) * (ch + gap)
         s.add(f'<rect x="{x:.1f}" y="{y}" width="{cw:.1f}" height="{ch}" rx="10" fill="{p["mantle"]}" '
-              f'stroke="{p["surface0"]}" class="rx-in" style="animation-delay:{0.1 * i:.2f}s"/>')
+              f'stroke="{p["surface0"]}"/>')
         s.text(x + 18, y + 30, [("  ", "blue", 400), (r["name"], "text", 700)], size=15)
         s.text(x + cw - 18, y + 30, [(f" {r['stargazerCount']}    {r['forkCount']}", "overlay1", 400)],
                size=12.5, anchor="end")
@@ -473,6 +466,7 @@ def main() -> None:
         if snake_src:
             (out / f"snake-{mode}.svg").write_text(snake(p, data, snake_src), encoding="utf-8")
     for f in sorted(out.glob("*.svg")):
+        ET.parse(f)                     # 坏掉的 SVG 在 CI 里直接失败，别推上线
         print(f"{f.name:28} {f.stat().st_size / 1024:7.1f} KB")
 
 
