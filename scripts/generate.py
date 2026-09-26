@@ -2,7 +2,7 @@
 """主页 SVG 生成器：Catppuccin（Mocha 深色 / Latte 浅色）× kitty 标签页窗口。
 
 每个面板都是同一套窗口外壳，只是激活的标签页不同：
-  1 fastfetch  自我介绍      2 btop  统计        3 ls ~/code  项目     4 snake  贪吃蛇
+  1 fastfetch 自我介绍 · 2 btop 统计 · 3 skyline 3D 贡献图 · 4 ls ~/code 项目 · 5 snake 贪吃蛇
 
 用法：GH_TOKEN=<token> python scripts/generate.py --out dist [--snake snake.svg]
 依赖：fonttools、brotli（字体子集化后以 woff2 内嵌，<img> 里的 SVG 无法加载外部字体）
@@ -36,7 +36,7 @@ FONTS = {
 W = 860          # 面板宽度，README 里按 100% 缩放
 PAD = 28         # 面板内边距
 BAR = 36         # 标签栏高度
-TABS = ["fastfetch", "btop", "ls ~/code", "snake"]
+TABS = ["fastfetch", "btop", "skyline", "ls ~/code", "snake"]
 
 # Catppuccin 官方色板：https://catppuccin.com/palette
 MOCHA = dict(
@@ -56,6 +56,25 @@ LATTE = dict(
     base="#eff1f5", mantle="#e6e9ef", crust="#dce0e8",
 )
 THEMES = {"dark": MOCHA, "light": LATTE}
+LEVELS = {"NONE": 0, "FIRST_QUARTILE": 1, "SECOND_QUARTILE": 2, "THIRD_QUARTILE": 3, "FOURTH_QUARTILE": 4}
+
+
+def mix(p: dict, key: str, t: float, base: str = "base") -> str:
+    """把色板里的 key 按比例 t 混进底色，用来派生贡献等级色。"""
+    a, b = p[key], p[base]
+    return "#" + "".join(f"{round(int(b[k:k + 2], 16) + (int(a[k:k + 2], 16) - int(b[k:k + 2], 16)) * t):02x}"
+                         for k in (1, 3, 5))
+
+
+def shade(color: str, f: float) -> str:
+    return "#" + "".join(f"{round(int(color[k:k + 2], 16) * f):02x}" for k in (1, 3, 5))
+
+
+def level_colors(p: dict) -> list[str]:
+    """贡献 0~4 级配色：贪吃蛇和 3D 图共用。"""
+    return [p["surface0"], mix(p, "mauve", .35), mix(p, "mauve", .6), mix(p, "mauve", .8), p["mauve"]]
+
+
 # 数据系列的取色顺序；语言颜色在所有面板里保持一致
 SERIES = ["mauve", "blue", "green", "peach", "pink", "teal", "yellow"]
 
@@ -206,7 +225,7 @@ def gql(query: str, **variables) -> dict:
     return body["data"]
 
 
-CAL = "contributionCalendar{totalContributions weeks{contributionDays{date contributionCount}}}"
+CAL = "contributionCalendar{totalContributions weeks{contributionDays{date contributionCount contributionLevel}}}"
 
 
 def fetch(login: str) -> dict:
@@ -234,6 +253,8 @@ def fetch(login: str) -> dict:
     year = u["contributionsCollection"]["contributionCalendar"]
     weeks = [sum(d["contributionCount"] for d in wk["contributionDays"]) for wk in year["weeks"]][-52:]
     week_starts = [wk["contributionDays"][0]["date"] for wk in year["weeks"]][-52:]
+    grid = [[(d["contributionCount"], LEVELS[d["contributionLevel"]], d["date"]) for d in wk["contributionDays"]]
+            for wk in year["weeks"]]
 
     langs: Counter[str] = Counter()
     for repo in u["repositories"]["nodes"]:
@@ -249,7 +270,7 @@ def fetch(login: str) -> dict:
             featured.append(r)
 
     return dict(created=created, days=days, year_total=year["totalContributions"],
-                weeks=weeks, week_starts=week_starts, langs=langs, featured=featured)
+                weeks=weeks, week_starts=week_starts, grid=grid, langs=langs, featured=featured)
 
 
 def streaks(days: dict[str, int]) -> tuple[tuple[int, str, str], tuple[int, str]]:
@@ -398,6 +419,56 @@ def stats(p: dict, data: dict) -> str:
     return s.render()
 
 
+def skyline(p: dict, data: dict) -> str:
+    """等轴测 3D 贡献图：一天一根柱子，顶面用贡献等级色，两个侧面压暗出立体感。"""
+    grid = data["grid"]
+    u, v = (12.6, 3.3), (-6.6, 5.0)          # 周方向（右下缓坡）、星期方向（左下陡坡）
+    gap, hmax = 0.84, 118                     # 柱子占格比例、最高柱高度
+    peak_count, _, peak_date = max((c for wk in grid for c in wk), default=(1, 0, ""))
+    peak = peak_count or 1
+    ox = (W - (len(grid) * u[0] - 7 * v[0])) / 2 - 7 * v[0]
+    oy = BAR + 40 + hmax
+    h = round(oy + len(grid) * u[1] + 7 * v[1] + 40)
+    s = Svg(h, "3D 贡献图：近一年每天的贡献量", p)
+    s.chrome(3, f"{grid[0][0][2]} → {grid[-1][-1][2]}")
+    lv = level_colors(p)
+    dark = p["base"] == MOCHA["base"]
+    side_l, side_r = (0.70, 0.85) if dark else (0.80, 0.90)
+
+    cells = []
+    for w, wk in enumerate(grid):
+        for d, (count, level, _) in enumerate(wk):
+            ax = ox + w * u[0] + d * v[0]
+            ay = oy + w * u[1] + d * v[1]
+            cells.append((ay + (u[1] + v[1]) * gap, ax, ay, count, level))
+    cells.sort()                               # 屏幕上靠下的柱子后画，才能挡住后面的
+
+    pt = lambda x, y: f"{x:.1f},{y:.1f}"
+    for _, ax, ay, count, level in cells:
+        top = lv[level]
+        ht = 2.0 if count == 0 else 4 + (count / peak) ** 0.6 * hmax
+        A = (ax, ay)
+        B = (ax + u[0] * gap, ay + u[1] * gap)
+        D = (ax + v[0] * gap, ay + v[1] * gap)
+        C = (B[0] + v[0] * gap, B[1] + v[1] * gap)
+        up = lambda q: (q[0], q[1] - ht)
+        # 左侧面 D-C、右侧面 C-B（底边在轮廓下沿，所以可见）
+        s.add(f'<polygon points="{pt(*D)} {pt(*C)} {pt(*up(C))} {pt(*up(D))}" fill="{shade(top, side_l)}"/>')
+        s.add(f'<polygon points="{pt(*C)} {pt(*B)} {pt(*up(B))} {pt(*up(C))}" fill="{shade(top, side_r)}"/>')
+        s.add(f'<polygon points="{pt(*up(A))} {pt(*up(B))} {pt(*up(C))} {pt(*up(D))}" fill="{top}"/>')
+
+    # 左上角：与统计面板同款的小标题；右下角：图例
+    s.add(f'<rect x="{PAD}" y="{BAR + 18}" width="3" height="12" rx="1.5" fill="{p["mauve"]}"/>')
+    s.text(PAD + 10, BAR + 28.5, [("每日贡献 · 一天一根柱子", "subtext0", 400)], size=12)
+    s.text(PAD, BAR + 50, [(f"最忙的一天 {peak_date} · {peak_count} 次", "overlay1", 400)], size=11.5)
+    lx = W - PAD - 5 * 16 - tw("多", 11.5) - 6
+    s.text(lx - 6, h - 22, [("少", "overlay1", 400)], size=11.5, anchor="end")
+    for i, c in enumerate(lv):
+        s.add(f'<rect x="{lx + i * 16:.1f}" y="{h - 32}" width="12" height="12" rx="2.5" fill="{c}"/>')
+    s.text(lx + 5 * 16 + 2, h - 22, [("多", "overlay1", 400)], size=11.5)
+    return s.render()
+
+
 def projects(p: dict, data: dict) -> str:
     repos = data["featured"]
     cols, gap, ch = 2, 16, 116
@@ -405,7 +476,7 @@ def projects(p: dict, data: dict) -> str:
     nrows = (len(repos) + cols - 1) // cols
     h = BAR + 26 + nrows * (ch + gap) - gap + 28
     s = Svg(h, "精选项目：" + "、".join(r["name"] for r in repos), p)
-    s.chrome(3, f"~/code · {len(repos)} repos")
+    s.chrome(4, f"~/code · {len(repos)} repos")
     colors = lang_colors(data["langs"])
     for i, r in enumerate(repos):
         x, y = PAD + (i % cols) * (cw + gap), BAR + 26 + (i // cols) * (ch + gap)
@@ -426,11 +497,9 @@ def projects(p: dict, data: dict) -> str:
 
 def snake(p: dict, data: dict, src: str) -> str:
     """把 snk 生成的贪吃蛇嵌进同款窗口，并把它的 CSS 变量换成 Catppuccin。"""
-    mix = lambda a, t: "#" + "".join(
-        f"{round(int(p['base'][k:k + 2], 16) + (int(p[a][k:k + 2], 16) - int(p['base'][k:k + 2], 16)) * t):02x}"
-        for k in (1, 3, 5))
-    colors = {"--cb": "#0000", "--cs": p["green"], "--ce": p["surface0"], "--c0": p["surface0"],
-              "--c1": mix("mauve", .35), "--c2": mix("mauve", .6), "--c3": mix("mauve", .8), "--c4": p["mauve"]}
+    lv = level_colors(p)
+    colors = {"--cb": "#0000", "--cs": p["green"], "--ce": lv[0], "--c0": lv[0],
+              "--c1": lv[1], "--c2": lv[2], "--c3": lv[3], "--c4": lv[4]}
     for k, v in colors.items():
         src = re.sub(rf"{k}:[^;}}]+", f"{k}:{v}", src)
     m = re.search(r'viewBox="([^"]+)"', src)
@@ -441,7 +510,7 @@ def snake(p: dict, data: dict, src: str) -> str:
     ih = iw * vb[3] / vb[2]
     h = BAR + 16 + ih + 8
     s = Svg(round(h), "贪吃蛇吃掉贡献图的动画", p)
-    s.chrome(4, f"{data['year_total']:,} contributions eaten")
+    s.chrome(5, f"{data['year_total']:,} contributions eaten")
     src = re.sub(r"<svg\b[^>]*?>", lambda m: re.sub(r'\s(width|height)="[^"]*"', "", m[0])[:-1]
                  + f' x="{PAD}" y="{BAR + 16}" width="{iw}" height="{ih:.1f}">', src, count=1)
     s.add(re.sub(r"<\?xml[^>]*\?>", "", src))
@@ -462,6 +531,7 @@ def main() -> None:
     for mode, p in THEMES.items():
         (out / f"hero-{mode}.svg").write_text(hero(p, data), encoding="utf-8")
         (out / f"stats-{mode}.svg").write_text(stats(p, data), encoding="utf-8")
+        (out / f"skyline-{mode}.svg").write_text(skyline(p, data), encoding="utf-8")
         (out / f"projects-{mode}.svg").write_text(projects(p, data), encoding="utf-8")
         if snake_src:
             (out / f"snake-{mode}.svg").write_text(snake(p, data, snake_src), encoding="utf-8")
