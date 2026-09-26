@@ -1,0 +1,20 @@
+{
+  "login": "RollandXD",
+  "host": "arch",
+  "user": "rolland",
+  "info": [
+    ["", "OS", "Arch Linux x86_64"],
+    ["", "WM", "niri · 滚动平铺"],
+    ["", "Shell", "zsh + powerlevel10k"],
+    ["", "Term", "kitty"],
+    ["", "Editor", "Neovim"],
+    ["", "Langs", "C++ · Java · Python · Lua"],
+    ["", "Role", "软件工程在读学生"],
+    ["", "Likes", "折腾 dotfiles · 把学到的写成笔记"]
+  ],
+  "featured": ["dotfiles", "claude-skills"],
+  "descriptions": {
+    "dotfiles": "Arch Linux 开发环境：zsh · kitty · Neovim · tmux 配置，附一键安装脚本"
+  },
+  "exclude_languages": ["HTML", "CSS", "Jupyter Notebook", "Makefile", "CMake", "Batchfile", "Dockerfile"]
+}
