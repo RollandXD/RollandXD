@@ -70,9 +70,20 @@ def shade(color: str, f: float) -> str:
     return "#" + "".join(f"{round(int(color[k:k + 2], 16) * f):02x}" for k in (1, 3, 5))
 
 
+def is_light(p: dict) -> bool:
+    return p is LATTE
+
+
+def soft(p: dict, key: str, t: float = .72) -> str:
+    """大面积填充用的强调色：深色主题原样用；浅色主题 Latte 太饱和，混进底色柔化。
+    文字仍用原色保证对比度，只有色块走这里。"""
+    return mix(p, key, t) if is_light(p) else p[key]
+
+
 def level_colors(p: dict) -> list[str]:
-    """贡献 0~4 级配色：贪吃蛇和 3D 图共用。"""
-    return [p["surface0"], mix(p, "mauve", .35), mix(p, "mauve", .6), mix(p, "mauve", .8), p["mauve"]]
+    """贡献 0~4 级配色：贪吃蛇和 3D 图共用。浅色主题整体浅一档。"""
+    steps = (.25, .45, .65, .85) if is_light(p) else (.35, .6, .8, 1)
+    return [p["surface0"], *(mix(p, "mauve", t) for t in steps)]
 
 
 # 数据系列的取色顺序；语言颜色在所有面板里保持一致
@@ -186,9 +197,15 @@ class Svg:
         for i, name in enumerate(TABS, 1):
             label, on = f" {i} {name} ", i == active
             w = tw(label, 12) + 8
-            fill, alpha = (p["mauve"], 1) if on else (p["surface0"], .55)
+            # 激活标签：深色主题实心紫底；浅色主题淡紫底 + 紫字，避免白底上一块刺眼的饱和色
+            if on and is_light(p):
+                fill, alpha, ink = mix(p, "mauve", .14), 1, "mauve"
+            elif on:
+                fill, alpha, ink = p["mauve"], 1, "crust"
+            else:
+                fill, alpha, ink = p["surface0"], .55, "overlay1"
             self.add(f'<rect x="{x}" y="8" width="{w:.1f}" height="20" rx="5" fill="{fill}" fill-opacity="{alpha}"/>')
-            self.text(x + 4, 22.5, [(label, "crust" if on else "overlay1", 700 if on else 400)], size=12)
+            self.text(x + 4, 22.5, [(label, ink, 700 if on else 400)], size=12)
             x += w + 6
         self.text(W - 16, 22.5, [(right, "overlay1", 400)], size=12, anchor="end")
         self.add(f'<rect x=".5" y=".5" width="{W - 1}" height="{h - 1}" rx="11.5" fill="none" stroke="{p["surface0"]}"/>')
@@ -376,7 +393,7 @@ def stats(p: dict, data: dict) -> str:
     s.text(cx0 + cw_, top, [(f"峰值 {peak} / 周", "overlay1", 400)], size=11.5, anchor="end")
     ch, base = 92, top + 22 + 92
     s.defs.append(f'<linearGradient id="rx-bar" gradientUnits="userSpaceOnUse" x1="0" y1="{base - ch}" x2="0" y2="{base}">'
-                  f'<stop offset="0" stop-color="{p["mauve"]}"/><stop offset="1" stop-color="{p["blue"]}"/></linearGradient>')
+                  f'<stop offset="0" stop-color="{soft(p, "mauve", .78)}"/><stop offset="1" stop-color="{soft(p, "blue", .5)}"/></linearGradient>')
     slot = cw_ / len(weeks)
     for i, v in enumerate(weeks):
         bx = cx0 + i * slot + slot * 0.18
@@ -432,8 +449,7 @@ def skyline(p: dict, data: dict) -> str:
     s = Svg(h, "3D 贡献图：近一年每天的贡献量", p)
     s.chrome(3, f"{grid[0][0][2]} → {grid[-1][-1][2]}")
     lv = level_colors(p)
-    dark = p["base"] == MOCHA["base"]
-    side_l, side_r = (0.70, 0.85) if dark else (0.80, 0.90)
+    side_l, side_r = (0.87, 0.94) if is_light(p) else (0.70, 0.85)
 
     cells = []
     for w, wk in enumerate(grid):
