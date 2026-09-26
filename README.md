@@ -11,6 +11,8 @@
   </picture>
 </a>
 
+<br/>
+
 <!-- 徽章 -->
 <img src="https://komarev.com/ghpvc/?username=RollandXD&label=Profile%20Views&color=b8bb26&style=flat-square" alt="访问量" />
 <a href="https://github.com/RollandXD?tab=followers"><img src="https://img.shields.io/github/followers/RollandXD?style=flat-square&logo=github&label=Followers&color=b8bb26&labelColor=282828" alt="Followers" /></a>
@@ -53,8 +55,7 @@ struct Rolland {
 
 <div align="center">
 
-<a href="https://github.com/RollandXD/dotfiles"><img src="https://gh-card.dev/repos/RollandXD/dotfiles.svg?fullname=" alt="dotfiles" /></a>
-<a href="https://github.com/RollandXD/claude-skills"><img src="https://gh-card.dev/repos/RollandXD/claude-skills.svg?fullname=" alt="claude-skills" /></a>
+<a href="https://github.com/RollandXD/dotfiles"><img src="https://gh-card.dev/repos/RollandXD/dotfiles.svg?fullname=" width="400" alt="dotfiles" /></a>&nbsp;<a href="https://github.com/RollandXD/claude-skills"><img src="https://gh-card.dev/repos/RollandXD/claude-skills.svg?fullname=" width="400" alt="claude-skills" /></a>
 
 </div>
 
